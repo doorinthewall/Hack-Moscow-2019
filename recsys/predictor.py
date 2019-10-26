@@ -1,9 +1,14 @@
 from typing import Dict, List, Optional
+
 import requests
 import pandas as pd
-from recsys.history.loader import HistoryLoader
+import logging
 
+from recsys.history.loader import HistoryLoader
 from recsys.history import REQUESTS_PATH, LOCATIONS_PATH
+
+
+logger = logging.getLogger(__name__)
 
 
 class UserFilter:
@@ -23,6 +28,7 @@ class UserFilter:
             res += list(self.location_history['PlaceCategory'].mode().values)
         if 'PlaceCategoryQuery' in self.request_history.columns:
             res += list(self.request_history['PlaceCategoryQuery'].mode().values)
+        res = list(filter(lambda x: x != '', res))
         return res
 
     def get_cat_filters(self):
@@ -126,7 +132,7 @@ class Predictor:
             'size': str(n_recommendations)
         }
         if len(cat_filters) != 0:
-            print(cat_filters)
+            logger.info(f'{cat_filters}')
             params['cat'] = ','.join(cat_filters)
         
         response = requests.get(
