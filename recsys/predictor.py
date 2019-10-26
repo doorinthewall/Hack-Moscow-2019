@@ -25,9 +25,23 @@ class UserFilter:
     def get_cat_filters(self):
         return self.make_frequency_cat_filter()
     
-    def get_other_filters(self):
-        return []
-    
+    def get_rating_filter(self, cat_filters):
+        mean_rating = 0.
+        if 'averageRating' in self.location_history.columns():
+            if len(cat_filters) > 0:
+                mean_rating = self.location_history[self.location_history['PlaceCategory'].isin(cat_filters)]['averageRating'].mean()
+            else:
+                mean_rating = self.location_history['averageRating'].mean()
+        
+        def filt(item):
+            if 'averageRating' in item:
+                return item['averageRating'] >= mean_rating
+            return True
+        return filt
+
+    def get_other_filters(self, cat_filters):
+        return [self.get_rating_filter(cat_filters)]
+
 
 class Predictor:
     def __init__(
@@ -80,10 +94,12 @@ class Predictor:
         user_filter = UserFilter(self.__user_id, location_history, request_history)
         new_cat_filters = []
         if cat_filters:
-            for cat in user_filter.get_cat_filters() + cat_filters:
+            for cat in cat_filters:
                 if self.check_cat(cat):
                     new_cat_filters.append(cat)
-        cat_filters = new_cat_filters
+            cat_filters = new_cat_filters
+        else:
+            cat_filters = user_filter.get_cat_filters()
         
         params = {
             'at': at,
@@ -101,9 +117,9 @@ class Predictor:
         
         # other filters
         if other_filters:
-            other_filters = self.__user_filter.get_other_filters() + other_filters
+            other_filters = self.__user_filter.get_other_filters(cat_filters) + other_filters
         else:
-            other_filters = self.__user_filter.get_other_filters()
+            other_filters = self.__user_filter.get_other_filters(cat_filters)
 
         result = self.process_response(response, other_filters)
         if n_recommendations > 0:
