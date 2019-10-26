@@ -1,0 +1,6 @@
+dea/
+__pycache__/
+.python-version
+*.save
+*.egg-info
+.ipynb_checkpoints
