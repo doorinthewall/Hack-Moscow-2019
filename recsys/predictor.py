@@ -33,13 +33,10 @@ class Predictor:
     def __init__(
         self,
         user_id: str = '',
-        user_password: str = '',
-        location_history: pd.DataFrame = None,
-        request_history: pd.DataFrame = None
+        user_password: str = ''
     ):
         self.__user_id = user_id
         self.__user_password = user_password
-        self.__user_filter = UserFilter(user_id, location_history, request_history)
 
     def check_cat(self, cat):
         valid_cats = set([
@@ -68,7 +65,9 @@ class Predictor:
                 longitude: float,
                 n_recommendations: int = 3,
                 cat_filters: Optional[List[str]] = None,
-                other_filters: Optional[List[str]] = None
+                other_filters: Optional[List[str]] = None,
+                location_history: pd.DataFrame = None,
+                request_history: pd.DataFrame = None
                ) -> Optional[List[Dict[str, str]]]:
         APP_ID = 'e2Oc8LGOHx35259d0Glf'
         APP_CODE = '7k1qMDQtFGum5E8o4GJKGg'
@@ -78,10 +77,10 @@ class Predictor:
         at = str(latitude) + ',' + str(longitude)
         
         # filters that can be processed inside of the request
-        
+        user_filter = UserFilter(self.__user_id, location_history, request_history)
         new_cat_filters = []
         if cat_filters:
-            for cat in self.__user_filter.get_cat_filters() + cat_filters:
+            for cat in user_filter.get_cat_filters() + cat_filters:
                 if self.check_cat(cat):
                     new_cat_filters.append(cat)
         cat_filters = new_cat_filters
