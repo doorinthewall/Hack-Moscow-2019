@@ -19,17 +19,6 @@ class PredictorResource:
                  predictor: Predictor) -> None:
         self.__predictor = predictor
 
-    def __predict(self,
-                  latitude: float,
-                  longitude: float,
-                  n_recommendations: int = 3) -> List[Dict[str, str]]:
-        prediction = self.__predictor.predict(latitude=latitude,
-                                              longitude=longitude,
-                                              n_recommendations=n_recommendations)
-        if prediction:
-            return prediction
-        return []
-
     def on_get(self, request: falcon.Request, response: falcon.Response):
         latitude = request.get_param_as_float('latitude', required=True)
         longitude = request.get_param_as_float('longitude', required=True)
@@ -45,8 +34,11 @@ class PredictorResource:
             cat_filters = cat_filters.split(',')
             params['cat_filters'] = cat_filters
         logger.info(f'Received request: latitude={latitude} longitude={longitude}')
+        
+        prediction = self.__predictor.predict(**params)
+        result = prediction if prediction else []
 
-        response.media = self.__predict(**params)
+        response.media = result
         logger.info(f'Response send: {response.media}')
 
 
