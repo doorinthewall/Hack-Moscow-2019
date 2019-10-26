@@ -19,12 +19,34 @@ class Predictor:
         self.__user_password = user_password
         self.__user_filter = UserFilter(user_id)
 
+    def check_cat(cat):
+        valid_cats = set([
+            'eat-drink',
+            'restaurant',
+            'coffee-tea',
+            'snacks-fast-food',
+            'going-out',
+            'sights-museums',
+            'transport',
+            'airport',
+            'accommodation',
+            'shopping',
+            'leisure-outdoor',
+            'administrative-areas-buildings',
+            'natural-geographical',
+            'petrol-station',
+            'atm-bank-exchange',
+            'toilet-rest-area',
+            'hospital-health-care-facility'
+        ])
+        return cat in valid_cats
+    
     def predict(self,
                 latitude: float,
                 longitude: float,
                 n_recommendations: int = 3,
-                cat_filters=[],
-                other_filters=[]
+                cat_filters: Optional[List[str]],
+                other_filters: Optional[List[str]]
                ) -> Optional[List[Dict[str, str]]]:
         APP_ID = 'e2Oc8LGOHx35259d0Glf'
         APP_CODE = '7k1qMDQtFGum5E8o4GJKGg'
@@ -32,14 +54,21 @@ class Predictor:
         if n_recommendations >= 99:
             n_recommendations = 99
         at = str(latitude) + ',' + str(longitude)
+        
+        # filters that can be processed inside of the request
+        
+        new_cat_features = []
+        for cat in cat_filters:
+            if self.check_cat(cat)
+            new_cat_features.append(cat)
+        cat_filters = self.__user_filter.get_cat_filters() + new_cat_filters
+        
         params = {
             'at': at,
             'app_id': APP_ID,
             'app_code': APP_CODE,
             'size': str(n_recommendations)
         }
-        # filters that can be processed inside of the request
-        cat_filters = self.__user_filter.get_cat_filters() + cat_filters
         
         response = requests.get(
             'https://places.api.here.com/places/v1/discover/explore',
@@ -68,12 +97,12 @@ class Predictor:
 
         filtered_items = self.filter_items(items, filters)
         result = [{
-             'name': item.get('title', 'unknown'),
-             'address': self.process_fields_with_br(
-                 item.get('vicinity', 'unknown')),
-             'open': self.process_fields_with_br(
-                 item.get('openingHours', {'text': 'unknown'}).get('text', 'unknown')
-             )
+            'name': item.get('title', 'unknown'),
+            'address': self.process_fields_with_br(
+             item.get('vicinity', 'unknown')),
+            'open': self.process_fields_with_br(
+             item.get('openingHours', {'text': 'unknown'}).get('text', 'unknown')
+            )
         } for item in filtered_items]
 
         return result
