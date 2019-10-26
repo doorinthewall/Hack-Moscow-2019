@@ -1,6 +1,9 @@
 from typing import Dict, List, Optional
 import requests
 import pandas as pd
+from recsys.history.loader import HistoryLoader
+
+from recsys.history import REQUESTS_PATH, LOCATIONS_PATH
 
 
 class UserFilter:
@@ -16,10 +19,10 @@ class UserFilter:
 
     def make_frequency_cat_filter(self):
         res = []
-        if 'PlaceCategory' in self.location_history.columns():
-            res += [self.location_history['PlaceCategory'].mode()]
-        if 'PlaceCategoryQuery' in self.request_history.columns():
-            res += [self.request_history['PlaceCategoryQuery'].mode()]
+        if 'PlaceCategory' in self.location_history.columns:
+            res += list(self.location_history['PlaceCategory'].mode().values)
+        if 'PlaceCategoryQuery' in self.request_history.columns:
+            res += list(self.request_history['PlaceCategoryQuery'].mode().values)
         return res
 
     def get_cat_filters(self):
@@ -27,7 +30,7 @@ class UserFilter:
     
     def get_rating_filter(self, cat_filters):
         mean_rating = 0.
-        if 'averageRating' in self.location_history.columns():
+        if 'averageRating' in self.location_history.columns:
             if len(cat_filters) > 0:
                 mean_rating = self.location_history[self.location_history['PlaceCategory'].isin(cat_filters)]['averageRating'].mean()
             else:
@@ -51,6 +54,8 @@ class Predictor:
     ):
         self.__user_id = user_id
         self.__user_password = user_password
+        self.__requests_loader = HistoryLoader(REQUESTS_PATH)
+        self.__locations_loader = HistoryLoader(LOCATIONS_PATH)
 
     def check_cat(self, cat):
         valid_cats = set([
@@ -83,6 +88,17 @@ class Predictor:
                 location_history: pd.DataFrame = None,
                 request_history: pd.DataFrame = None
                ) -> Optional[List[Dict[str, str]]]:
+        checkpoint = {
+            'Longtitude': longitude,
+            'Latitude': latitude,
+            'PlaceCategory': ','.join(cat_filters) if cat_filters else ''
+        }
+        self.__locations_loader.save(checkpoint)
+        checkpoint = {
+            'PlaceCategoryQuery': ','.join(cat_filters) if cat_filters else '',
+        }
+        self.__requests_loader.save(checkpoint)
+
         APP_ID = 'e2Oc8LGOHx35259d0Glf'
         APP_CODE = '7k1qMDQtFGum5E8o4GJKGg'
 
@@ -91,6 +107,8 @@ class Predictor:
         at = str(latitude) + ',' + str(longitude)
         
         # filters that can be processed inside of the request
+        location_history = self.__locations_loader.load()
+        request_history = self.__requests_loader.load()
         user_filter = UserFilter(self.__user_id, location_history, request_history)
         new_cat_filters = []
         if cat_filters:
@@ -108,6 +126,7 @@ class Predictor:
             'size': str(n_recommendations)
         }
         if len(cat_filters) != 0:
+            print(cat_filters)
             params['cat'] = ','.join(cat_filters)
         
         response = requests.get(
@@ -117,9 +136,9 @@ class Predictor:
         
         # other filters
         if other_filters:
-            other_filters = self.__user_filter.get_other_filters(cat_filters) + other_filters
+            other_filters = user_filter.get_other_filters(cat_filters) + other_filters
         else:
-            other_filters = self.__user_filter.get_other_filters(cat_filters)
+            other_filters = user_filter.get_other_filters(cat_filters)
 
         result = self.process_response(response, other_filters)
         if n_recommendations > 0:

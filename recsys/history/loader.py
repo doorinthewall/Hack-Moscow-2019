@@ -3,8 +3,6 @@ import pathlib
 
 import pandas as pd
 
-from recsys.history import REQUESTS_PATH, LOCATIONS_PATH
-
 
 class HistoryLoader:
     def __init__(self, path: pathlib.Path):
