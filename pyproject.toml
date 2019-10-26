@@ -8,6 +8,7 @@ authors = ["Some team"]
 python = "^3.6"
 gunicorn = "^19.9"
 falcon = "^2.0"
+requests = "^2.22"
 
 [tool.poetry.dev-dependencies]
 
