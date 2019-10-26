@@ -1,23 +1,45 @@
 from typing import Dict, List, Optional
 import requests
+import pandas as pd
 
 
 class UserFilter:
-    def __init__(self, user_id: str = ''):
+    def __init__(
+        self,
+        user_id: str = '',
+        location_history: pd.DataFrame = None,
+        request_history: pd.DataFrame = None
+    ):
         self.__user_id = user_id
-        
+        self.location_history = location_history
+        self.request_history = request_history
+
+    def make_frequency_cat_filter(self):
+        res = []
+        if 'PlaceCategory' in self.location_history.columns():
+            res += [self.location_history['PlaceCategory'].mode()]
+        if 'PlaceCategoryQuery' in self.request_history.columns():
+            res += [self.request_history['PlaceCategoryQuery'].mode()]
+        return res
+
     def get_cat_filters(self):
-        return []
+        return self.make_frequency_cat_filter()
     
     def get_other_filters(self):
         return []
     
 
 class Predictor:
-    def __init__(self, user_id: str = '', user_password: str = ''):
+    def __init__(
+        self,
+        user_id: str = '',
+        user_password: str = '',
+        location_history: pd.DataFrame = None,
+        request_history: pd.DataFrame = None
+    ):
         self.__user_id = user_id
         self.__user_password = user_password
-        self.__user_filter = UserFilter(user_id)
+        self.__user_filter = UserFilter(user_id, location_history, request_history)
 
     def check_cat(self, cat):
         valid_cats = set([
@@ -59,10 +81,10 @@ class Predictor:
         
         new_cat_filters = []
         if cat_filters:
-            for cat in cat_filters:
+            for cat in self.__user_filter.get_cat_filters() + cat_filters:
                 if self.check_cat(cat):
                     new_cat_filters.append(cat)
-        cat_filters = self.__user_filter.get_cat_filters() + new_cat_filters
+        cat_filters = new_cat_filters
         
         params = {
             'at': at,
