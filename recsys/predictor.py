@@ -19,7 +19,7 @@ class Predictor:
         self.__user_password = user_password
         self.__user_filter = UserFilter(user_id)
 
-    def check_cat(cat):
+    def check_cat(self, cat):
         valid_cats = set([
             'eat-drink',
             'restaurant',
@@ -45,8 +45,8 @@ class Predictor:
                 latitude: float,
                 longitude: float,
                 n_recommendations: int = 3,
-                cat_filters: Optional[List[str]],
-                other_filters: Optional[List[str]]
+                cat_filters: Optional[List[str]] = None,
+                other_filters: Optional[List[str]] = None
                ) -> Optional[List[Dict[str, str]]]:
         APP_ID = 'e2Oc8LGOHx35259d0Glf'
         APP_CODE = '7k1qMDQtFGum5E8o4GJKGg'
@@ -57,10 +57,11 @@ class Predictor:
         
         # filters that can be processed inside of the request
         
-        new_cat_features = []
-        for cat in cat_filters:
-            if self.check_cat(cat)
-            new_cat_features.append(cat)
+        new_cat_filters = []
+        if cat_filters:
+            for cat in cat_filters:
+                if self.check_cat(cat):
+                    new_cat_filters.append(cat)
         cat_filters = self.__user_filter.get_cat_filters() + new_cat_filters
         
         params = {
@@ -69,6 +70,8 @@ class Predictor:
             'app_code': APP_CODE,
             'size': str(n_recommendations)
         }
+        if len(cat_filters) != 0:
+            params['cat'] = ','.join(cat_filters)
         
         response = requests.get(
             'https://places.api.here.com/places/v1/discover/explore',
@@ -76,8 +79,11 @@ class Predictor:
         ).json()
         
         # other filters
-        other_filters = self.__user_filter.get_other_filters() + other_filters
-        
+        if other_filters:
+            other_filters = self.__user_filter.get_other_filters() + other_filters
+        else:
+            other_filters = self.__user_filter.get_other_filters()
+
         result = self.process_response(response, other_filters)
         if n_recommendations > 0:
             return result
@@ -119,4 +125,3 @@ class Predictor:
             if add:
                 res.append(item)
         return res
-
