@@ -29,11 +29,11 @@ class PredictorResource:
         n_recommendations = request.get_param_as_int('n', required=False)
         if n_recommendations:
             params['n_recommendations'] = n_recommendations
-        cat_filters = request.get_param('cat_filters', required=False)
+        cat_filters = request.get_param_as_list('cat_filters', required=False)
         if cat_filters:
-            cat_filters = cat_filters.split(',')
+            # cat_filters = cat_filters.split(',')
             params['cat_filters'] = cat_filters
-        logger.info(f'Received request: latitude={latitude} longitude={longitude}')
+        logger.info(f'Received request: latitude={latitude} longitude={longitude} cat_filters={cat_filters}')
         
         prediction = self.__predictor.predict(**params)
         result = prediction if prediction else []
